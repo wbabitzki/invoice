@@ -1,0 +1,8 @@
+svgwrite
+segno
+qrbill
+python-stdnum
+livereload
+flask
+Jinja2
+WeasyPrint

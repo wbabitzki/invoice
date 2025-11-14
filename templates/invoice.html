@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8"/>
+    <title>Rechnung {{ invoice.number }}</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body>
+
+<div class="address-window">
+    <div class="sender">
+        <strong>{{ provider.name }}</strong>, {{ provider.street }} {{ provider.house }}, {{ provider.zipcode }} {{ provider.city }}<br>
+    </div>
+    <div class="recipient">
+        <span>{{ customer.name }}</span>
+        <span>{{ customer.street | safe }} {{ customer.house | safe }}</span>
+        <span>{{ customer.zipcode | safe }} {{ customer.city | safe }}</span>
+    </div>
+</div>
+<div class="date-page">
+    <span>Datum: {{ invoice.date }}</span>
+    <span>Seite: <span class="pageNumber"></span></span>
+</div>
+<div class="invoice-title">
+    Rechnung Nr. {{ invoice.number }} — {{ invoice.name }}
+</div>
+
+<table class="items">
+    <thead>
+    <tr>
+        <th class="col-desc">Beschreibung</th>
+        <th class="col-qty">Menge</th>
+        <th class="col-price-unit">Einheit</th>
+        <th class="col-units">Einzelpreis</th>
+        <th class="col-total">Betrag</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for item in items %}
+        <tr>
+            <td class="col-desc">{{ item.desc }}</td>
+            <td class="col-qty">{{ item.qty }}</td>
+            <td class="col-price-unit">{{ item.price_unit }}</td>
+            <td class="col-units">{{ "%.2f"|format(item.unit_price) }}</td>
+            <td class="col-total">{{ (item.qty * item.unit_price) | swiss }}</td>
+        </tr>
+    {% endfor %}
+    <tr class="spacer">
+        <td colspan="5"></td>
+    </tr>
+    <tr class="subtotal">
+        <td colspan="3" class="right">Zwischensumme</td>
+        <td colspan="2" class="right">{{ totals.net | swiss }}</td>
+    </tr>
+    <tr class="vat-row">
+        <td colspan="3" class="right">MwSt</td>
+        <td class="right">{{ "%.2f"|format(totals.vat_rate) }}%</td>
+        <td class="right">{{ "%.2f"|format(totals.vat) }}</td>
+    </tr>
+    <tr class="total-row">
+        <td colspan="4" class="right">Total {{ currency }}</td>
+        <td class="right">{{totals.gross | swiss }}</td>
+    </tr>
+    </tbody>
+</table>
+<div class="payment-statement">
+    <p><strong>Zahlungsbedingungen:</strong> Zahlbar innert 30 Tagen netto</p>
+</div>
+<div class="footer">
+    <span><strong>{{ provider.name | safe }}</strong></span> •
+    <span>T: {{ provider.phone }}</span> •
+    <span>MWST-Nr. {{ provider.vat_number }}</span> •
+    <span>{{ provider.email | safe }}</span>
+</div>
+<div class="invoice-content">
+    <!-- QR Bill at bottom of page -->
+    <div class="qr-bill-container">
+        <div class="qr-bill-left">
+            <div class="receipt-title">Empfangsschein</div>
+
+            <div class="receipt-info">
+                <div class="field">
+                    <span class="label">Konto / Zahlbar an</span>
+                    <div class="text">
+                        {{ provider.account | safe }}<br>
+                        {{ provider.name | safe }}<br>
+                        {{ provider.street | safe }} {{ provider.house }}<br>
+                        {{ provider.zipcode }} {{ provider.city }}
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="label">Referenz</span>
+                    <div class="text">{{ reference }}</div>
+                </div>
+
+                <div class="field">
+                    <span class="label">Zahlbar durch</span>
+                    <div class="text">
+                        {{ customer.name | safe }}<br>
+                        {{ customer.street | safe }} {{ customer.house | safe }}<br>
+                        {{ customer.zipcode | safe }} {{ customer.city | safe }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="receipt-amount">
+                <div class="amount-row">
+                    <span class="label">Währung</span>
+                    <span class="label">Betrag</span>
+                </div>
+                <div class="amount-row">
+                    <span class="text">{{ currency }}</span>
+                    <span class="text">{{ "%.2f"|format(totals.gross) }}</span>
+                </div>
+            </div>
+
+            <div class="receipt-acceptance">
+                <span class="label">Annahmestelle</span>
+            </div>
+        </div>
+
+        <div class="qr-bill-right">
+            <div class="payment-title">Zahlteil</div>
+
+            <div class="payment-main">
+                <div class="qr-section">
+                    <div class="qr-wrapper">
+                        {{ qr_svg | safe }}
+                        <img class="qr-cross" src="../static/CH-Kreuz_7mm/CH-Kreuz_7mm.svg" alt="Swiss Cross">
+                    </div>
+                </div>
+
+                <div class="payment-info">
+                    <div class="field">
+                        <span class="label">Konto / Zahlbar an</span>
+                        <div class="text">
+                            {{ provider.account | safe }}<br>
+                            {{ provider.name | safe }}<br>
+                            {{ provider.street | safe }} {{ provider.house | safe }}<br>
+                            {{ provider.zipcode | safe }} {{ provider.city | safe }}
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <span class="label">Referenz</span>
+                        <div class="text">{{ reference }}</div>
+                    </div>
+
+                    <div class="field">
+                        <span class="label">Zusätzliche Informationen</span>
+                        <div class="text">Rechnungsnummer: {{ invoice.number | safe }}</div>
+                    </div>
+
+                    <div class="field">
+                        <span class="label">Zahlbar durch</span>
+                        <div class="text">
+                            {{ customer.name | safe }}<br>
+                            {{ customer.street | safe }} {{ customer.house | safe }}<br>
+                            {{ customer.zipcode | safe }} {{ customer.city | safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="payment-amount">
+                <div class="amount-row">
+                    <span class="label">Währung</span>
+                    <span class="label">Betrag</span>
+                </div>
+                <div class="amount-row">
+                    <span class="text">{{ currency }}</span>
+                    <span class="text">{{ "%.2f"|format(totals.gross) }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

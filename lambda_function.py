@@ -16,7 +16,13 @@ logger.setLevel(logging.DEBUG)
 
 s3_client = boto3.client("s3")
 
+class InvalidPayloadError(ValueError):
+    """Raised when an incoming request body is present but malformed."""
+
+
 def _extract_payload(event):
+    # No event / empty event at all: treat as a manual test invocation
+    # (e.g. Lambda console "Test" button) and use the built-in sample data.
     if not isinstance(event, dict) or not event:
         return dict(test_data)
 
@@ -28,15 +34,15 @@ def _extract_payload(event):
         if isinstance(body, str):
             try:
                 data = json.loads(body)
-            except json.JSONDecodeError:
-                return dict(test_data)
+            except json.JSONDecodeError as exc:
+                raise InvalidPayloadError(f"Request body is not valid JSON: {exc}") from exc
         elif isinstance(body, dict):
             data = body
         else:
-            return dict(test_data)
+            raise InvalidPayloadError("Request body must be a JSON object")
 
         if not isinstance(data, dict) or not data.get("items"):
-            return dict(test_data)
+            raise InvalidPayloadError("Request body must contain a non-empty 'items' array")
         return data
 
     if "invoice" in event and "items" in event:
@@ -47,7 +53,15 @@ def _extract_payload(event):
 
 def lambda_handler(event: Dict[str, Any] | None, _context: Any) -> Dict[str, Any]:
     logger.info("lambda_handler start")
-    payload = _extract_payload(event)
+    try:
+        payload = _extract_payload(event)
+    except InvalidPayloadError as exc:
+        logger.warning("Invalid request payload: %s", exc)
+        return {
+            "statusCode": 400,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"message": str(exc)}),
+        }
     logger.info("payload extracted")
 
     logger.info("calling render()")
@@ -69,7 +83,15 @@ def lambda_handler(event: Dict[str, Any] | None, _context: Any) -> Dict[str, Any
 def lambda_handler_s3(event: Dict[str, Any] | None, _context: Any) -> Dict[str, Any]:
 
     logger.info("lambda_handler_s3 start")
-    payload = _extract_payload(event)
+    try:
+        payload = _extract_payload(event)
+    except InvalidPayloadError as exc:
+        logger.warning("Invalid request payload: %s", exc)
+        return {
+            "statusCode": 400,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"message": str(exc)}),
+        }
     logger.info("payload extracted")
 
     file_name = create_file_name(payload)
